@@ -5,6 +5,7 @@ const ChromecastContext = createContext()
 
 const ChromecastProvider = ({ children }) => {
   const [ activeSession, setActiveSession ] = useState(false)
+  const [ loading, setLoading ] = useState(false)
   const [ playing, setPlaying ] = useState(false)
   const [ duration, setDuration ] = useState(0)
   const [ progress, setProgress ] = useState(0)
@@ -64,6 +65,7 @@ const ChromecastProvider = ({ children }) => {
 
       const { mediaStatus } = args[0]
       
+      if (mediaStatus.playerState === 2) setLoading(false)
       setPlayerState(mediaStatus.playerState)
       setDuration(mediaStatus.streamDuration)
       setProgress(mediaStatus.streamPosition)
@@ -75,6 +77,7 @@ const ChromecastProvider = ({ children }) => {
       
       const { mediaStatus } = args[0]
 
+      setLoading(false)
       setPlaying(true)
       setPlayerState(mediaStatus.playerState)
       setDuration(mediaStatus.streamDuration)
@@ -100,6 +103,7 @@ const ChromecastProvider = ({ children }) => {
 
   const resetPlayer = () => {
     setPlaying(false)
+    setLoading(false)
     setDuration(0)
     setProgress(0)
     setPlayerState(0)
@@ -117,6 +121,8 @@ const ChromecastProvider = ({ children }) => {
     if (!activeSession) return
 
     try {
+      setLoading(true)
+
       const response = await fetch('https://nts.mst.mn/api/mc', {
         method: 'POST',
         headers: {
@@ -141,13 +147,14 @@ const ChromecastProvider = ({ children }) => {
         playPosition: 0
       })
     } catch (error) {
-      
+      setLoading(false)
     }
   }
 
   const value = {
     activeSession,
     playing,
+    loading,
     playerState,
     duration,
     progress,

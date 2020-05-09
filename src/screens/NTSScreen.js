@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react'
-import { Animated, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { Animated, View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native'
 import { WebView } from 'react-native-webview'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSafeArea } from 'react-native-safe-area-context'
 import { CastButton } from 'react-native-google-cast'
 
 import Icon from '../components/Icon'
@@ -26,6 +26,7 @@ const injectedJavaScript = `
     event.stopPropagation();
     closest.blur();
     event.target.blur();
+    document.body.click();
 
     var message = {
       platform: 'mc',
@@ -41,8 +42,9 @@ const injectedJavaScript = `
 const BAR_HEIGHT = 100
 
 const NTSScreen = () => {
-  const { playing, playerState, progress, duration, pause, play, castMixcloud } = useChromecast()
-  const playbarHeight = useRef(new Animated.Value(playing ? BAR_HEIGHT : 0)).current
+  const { playing, loading, playerState, progress, duration, pause, play, castMixcloud } = useChromecast()
+  const insets = useSafeArea()
+  const playbarHeight = useRef(new Animated.Value(playing ? (BAR_HEIGHT + insets.bottom) : 0)).current
 
   const percent = `${(progress / duration) * 100}%`
 
@@ -58,46 +60,54 @@ const NTSScreen = () => {
 
   useEffect(() => {
     Animated.timing(playbarHeight, {
-      toValue: playing ? BAR_HEIGHT : 0,
-      duration: 500,
+      toValue: (playing || loading) ? (BAR_HEIGHT + insets.bottom) : 0,
+      duration: 250,
       useNativeDriver: false
     }).start()
-  }, [ playing ])
+  }, [ playing, loading ])
 
   return (
-    <SafeAreaView style={ styles.root }>
+    <View style={[ styles.root, { paddingTop: insets.top } ]}>
       <WebView
         style={ styles.webview }
         source={{ uri: 'https://nts.live' }}
         injectedJavaScript={ injectedJavaScript }
         onMessage={ onWebViewMessage }
+        allowsBackForwardNavigationGestures
       />
 
       <Animated.View style={[ styles.playbarContainer, { height: playbarHeight } ]}>
-        <View style={ styles.playbar }>
-          { playerState === 2 ?
-            <TouchableOpacity style={ styles.playButton } onPress={ pause }>
-              <Icon name="pause" size={ 32 } color="black" />
-            </TouchableOpacity> :
-            <TouchableOpacity style={ styles.playButton } onPress={ play }>
-              <Icon name="play" size={ 32 } color="black" />
-            </TouchableOpacity>
+        <View style={[ styles.playbar, { height: (BAR_HEIGHT + insets.bottom), paddingBottom: insets.bottom } ]}>
+          { loading ?
+            <View style={ styles.playButton }>
+              <ActivityIndicator size="large" tintColor="black" />
+            </View> :
+            <>
+              { playerState === 2 ?
+                <TouchableOpacity style={ styles.playButton } onPress={ pause }>
+                  <Icon name="pause" size={ 32 } color="black" />
+                </TouchableOpacity> :
+                <TouchableOpacity style={ styles.playButton } onPress={ play } disabled={ playerState !== 3 }>
+                  <Icon name="play" size={ 32 } color="black" />
+                </TouchableOpacity>
+              }
+            </>
           }
 
           <View style={ styles.transportContainer }>
             <Text style={ styles.progressText }>{ formatSeconds(progress) }</Text>
             <View style={ styles.progressBar }>
-              <View style={[ styles.progressIndicator, { left: percent } ]} />
+              <Animated.View style={[ styles.progressIndicatorContainer, { left: percent } ]}>
+                <View style={ styles.progressIndicator } />
+              </Animated.View>
             </View>
             <Text style={ styles.durationText }>{ formatSeconds(duration) }</Text>
           </View>
         </View>
       </Animated.View>
 
-      <View style={ StyleSheet.absoluteFill } pointerEvents="box-none">
-        <CastButton style={ styles.chromecastButton } tintColor="black" />
-      </View>
-    </SafeAreaView>
+      <CastButton style={[ styles.chromecastButton, { bottom: 20 + insets.bottom } ]} tintColor="black" />
+    </View>
   )
 }
 
@@ -130,18 +140,19 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     width: '100%',
-    height: 100,
+    height: BAR_HEIGHT,
     paddingLeft: 20,
     paddingRight: 100,
     alignItems: 'center',
     flexDirection: 'row'
   },
   playButton: {
-    width: 32,
-    height: 32,
+    width: 60,
+    height: 60,
     marginRight: 20,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    textAlign: 'center'
   },
   transportContainer: {
     flex: 1,
@@ -154,17 +165,24 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: 'black'
   },
-  progressIndicator: {
+  progressIndicatorContainer: {
     position: 'absolute',
     top: 0,
+    left: 0,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [
+      { translateX: -20 },
+      { translateY: -18 }
+    ]
+  },
+  progressIndicator: {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: 'black',
-    transform: [
-      { translateX: -8 },
-      { translateY: -6 }
-    ]
+    backgroundColor: 'black'
   },
   progressText: {
     fontSize: 12,
