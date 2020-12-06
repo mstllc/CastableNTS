@@ -5,17 +5,17 @@
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios --simulator \"iPad Air (3rd generation)\"",
-    "start": "react-native start",
+    "start": "react-native start --reset-cache",
     "test": "jest",
     "lint": "eslint ."
   },
   "dependencies": {
-    "react": "16.11.0",
-    "react-native": "0.62.2",
-    "react-native-google-cast": "^3.3.0",
-    "react-native-safe-area-context": "^0.7.3",
-    "react-native-vector-icons": "^6.6.0",
-    "react-native-webview": "^9.4.0"
+    "react": "16.13.1",
+    "react-native": "0.63.4",
+    "react-native-google-cast": "^3.4.0",
+    "react-native-safe-area-context": "^3.1.9",
+    "react-native-vector-icons": "^7.1.0",
+    "react-native-webview": "^11.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.6.2",
